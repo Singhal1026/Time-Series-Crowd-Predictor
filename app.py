@@ -76,9 +76,11 @@ predictor = CrowdPredictor()
 
 # Gradio interface setup
 with gr.Blocks() as prediction_block:
+    theme=gr.themes.Soft()
     gr.Label("Crowd Count Prediction")
     with gr.Tab("Single Prediction"):
-        camera_location_input = gr.Text(label="Camera Location (Category)")
+        # camera_location_input = gr.Text(label="Camera Location (Category)")
+        camera_location_input = gr.Dropdown(choices=[f"Camera_{i}" for i in range(1, 101)], label="Camera Location (Category)"),
         single_predict_btn = gr.Button("Predict")
         single_result = gr.Number(label="Predicted Crowd Count")
         
