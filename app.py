@@ -55,7 +55,6 @@ class CrowdPredictor:
         self.prev_crowd_count = int(prediction[0][0])
 
         return self.prev_crowd_count
-    
 
     def predict_batch(self, batch_data):
         os.system('cls')
@@ -68,37 +67,85 @@ class CrowdPredictor:
             prediction = self.predict_single(camera_location_input)
             predictions.append(prediction)
         
-        return predictions
+        # Prepare DataFrame for LinePlot output
+        plot_data = self.data[['datetime', 'crowd_count']]
+
+        return ', '.join(map(str, predictions)), plot_data
+    
+    def predict_nxt_m_minutes(self, camera_location, m):
+        os.system('cls')
+
+        predictions = []
+        for _ in range(int(m)):  # Ensure m is an integer
+            prediction = self.predict_single(camera_location)
+            predictions.append(prediction)
         
+        # Prepare DataFrame for LinePlot output
+        plot_data = self.data[['datetime', 'crowd_count']]
+
+        return ', '.join(map(str, predictions)), plot_data
 
 # Instantiate the predictor
 predictor = CrowdPredictor()
 
 # Gradio interface setup
 with gr.Blocks() as prediction_block:
-    theme=gr.themes.Soft()
     gr.Label("Crowd Count Prediction")
+    
+    # Single Prediction Tab
     with gr.Tab("Single Prediction"):
-        # camera_location_input = gr.Text(label="Camera Location (Category)")
-        camera_location_input = gr.Dropdown(choices=[f"Camera_{i}" for i in range(1, 101)], label="Camera Location (Category)"),
+        single_camera_location = gr.Dropdown(choices=[f"Camera_{i}" for i in range(1, 101)], label="Camera Location (Category)")
         single_predict_btn = gr.Button("Predict")
         single_result = gr.Number(label="Predicted Crowd Count")
-        
+
         single_predict_btn.click(
             predictor.predict_single,
-            inputs=camera_location_input,
+            inputs=single_camera_location,
             outputs=single_result
         )
-    
+
+    # Batch Prediction Tab
     with gr.Tab("Batch Prediction"):
         batch_input = gr.File(label="Upload CSV")
         batch_predict_btn = gr.Button("Predict")
-        output = gr.Textbox(label="Predicted Crowd Counts")
+        batch_output = gr.Textbox(label="Predicted Crowd Counts")
+        batch_plot = gr.LinePlot(
+            predictor.data,
+            x="datetime", 
+            y="crowd_count", 
+            title="Crowd Count History", 
+            x_title="Datetime", 
+            y_title="Crowd Count", 
+            label="Crowd Count History"
+        )
 
         batch_predict_btn.click(
             predictor.predict_batch,
             inputs=batch_input,
-            outputs=output
+            outputs=[batch_output, batch_plot]
         )
 
+    # Predict Next M Minutes Tab
+    with gr.Tab("Predict next M minutes"):
+        m = gr.Number(label="Minutes to predict", minimum=1, maximum=100)
+        next_camera_location = gr.Dropdown(choices=[f"Camera_{i}" for i in range(1, 101)], label="Camera Location (Category)")
+        predict_next_btn = gr.Button("Predict")
+        next_output = gr.Textbox(label="Predicted Crowd Counts")
+        next_plot = gr.LinePlot(
+            predictor.data,
+            x="datetime", 
+            y="crowd_count", 
+            title="Crowd Count History", 
+            x_title="Datetime", 
+            y_title="Crowd Count", 
+            label="Crowd Count History"
+        )
+
+        predict_next_btn.click(
+            predictor.predict_nxt_m_minutes,
+            inputs=[next_camera_location, m],
+            outputs=[next_output, next_plot]
+        )
+
+# Launch the Gradio app
 prediction_block.launch(share=True, debug=True)
